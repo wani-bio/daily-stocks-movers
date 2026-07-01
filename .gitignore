@@ -1,0 +1,32 @@
+# secrets / env
+.env
+.env.local
+*.tfvars
+!*.tfvars.example
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# node / python
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.zip
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+
+.claude/
+
+*.pdf
+*.md
