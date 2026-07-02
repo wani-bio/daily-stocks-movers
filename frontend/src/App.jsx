@@ -64,11 +64,23 @@ function Stats({ movers }) {
   )
 }
 
-const W = 700, H = 210, PADX = 34, PADT = 16, PADB = 16
-
 function Chart({ movers }) {
   const [hover, setHover] = useState(null)
-  const svgRef = useRef(null)
+  const [width, setWidth] = useState(0)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    const el = wrapRef.current
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const mobile = width > 0 && width < 560
+  const W = width || 700
+  const H = mobile ? 170 : 210
+  const PADX = mobile ? 14 : 34
+  const PADT = 16, PADB = 16
 
   const days = [...movers].reverse() // oldest → newest
   const vals = days.map((m) => m.percent_change)
@@ -87,9 +99,11 @@ function Chart({ movers }) {
   const iMin = vals.indexOf(Math.min(...vals))
   const last = pts[pts.length - 1]
 
+  const anchorFor = (i) => (i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle')
+
   const onMove = (clientX) => {
-    const r = svgRef.current.getBoundingClientRect()
-    const vx = ((clientX - r.left) / r.width) * W
+    const r = wrapRef.current.getBoundingClientRect()
+    const vx = clientX - r.left
     let best = 0
     pts.forEach((p, i) => {
       if (Math.abs(p.x - vx) < Math.abs(pts[best].x - vx)) best = i
@@ -98,10 +112,7 @@ function Chart({ movers }) {
   }
 
   const hv = hover != null ? pts[hover] : null
-  const tipLeft = hv && svgRef.current
-    ? Math.max(70, Math.min(svgRef.current.getBoundingClientRect().width - 70,
-        (hv.x / W) * svgRef.current.getBoundingClientRect().width))
-    : 0
+  const tipLeft = hv ? Math.max(70, Math.min(W - 70, hv.x)) : 0
 
   return (
     <section className="chartcard num">
@@ -109,12 +120,13 @@ function Chart({ movers }) {
         <h2>Daily move</h2>
         <span>top mover’s % change per day</span>
       </div>
-      <div className="chartwrap">
+      <div className="chartwrap" ref={wrapRef}>
+        {width > 0 && (
         <svg
-          ref={svgRef}
           className="linechart"
+          width={W}
+          height={H + 30}
           viewBox={`0 -14 ${W} ${H + 30}`}
-          preserveAspectRatio="none"
           role="img"
           aria-label="Line chart of the daily top mover's percent change"
           onMouseMove={(e) => onMove(e.clientX)}
@@ -150,7 +162,7 @@ function Chart({ movers }) {
                 className={`vlabel ${vals[i] >= 0 ? 'lu' : 'ld'}`}
                 x={pts[i].x}
                 y={pts[i].y + (i === iMax ? -12 : 18)}
-                textAnchor="middle"
+                textAnchor={anchorFor(i)}
               >
                 {fmtPct(vals[i])}
               </text>
@@ -160,6 +172,7 @@ function Chart({ movers }) {
             <line className="xhair" x1={hv.x} x2={hv.x} y1={PADT - 6} y2={H - PADB} />
           )}
         </svg>
+        )}
         {hv && (
           <div className="tip" style={{ left: tipLeft, opacity: 1 }}>
             <span className="tt">{hv.ticker}</span>{' '}
@@ -171,7 +184,7 @@ function Chart({ movers }) {
           </div>
         )}
       </div>
-      <div className="xlabels">
+      <div className="xlabels" style={{ paddingLeft: PADX, paddingRight: PADX }}>
         {pts.map((p) => (
           <div key={p.date}>
             <div className="t">{p.ticker}</div>
