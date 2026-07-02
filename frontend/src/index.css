@@ -69,6 +69,52 @@ h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0
 .down { color: var(--loss); }
 .slash { color: var(--text-3); }
 
+/* chart card */
+.chartcard {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px 12px; margin-bottom: 12px;
+}
+.chartcard .head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 14px;
+}
+.chartcard h2 { font-size: 14px; font-weight: 600; }
+.chartcard .head span { font-size: 12px; color: var(--text-3); }
+.chartwrap { position: relative; }
+.linechart { width: 100%; height: 210px; display: block; }
+.zero { stroke: #32363B; stroke-dasharray: 4 4; }
+.zlabel { fill: var(--text-3); font-size: 11px; }
+.priceline {
+  fill: none; stroke: #34C98E; stroke-width: 2;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+.dot { stroke: var(--card); stroke-width: 2; }
+.dot.du { fill: var(--gain); }
+.dot.dd { fill: var(--loss); }
+.endring { fill: none; stroke: var(--gain); stroke-opacity: 0.4; stroke-width: 2; }
+.vlabel { font-size: 12px; font-weight: 600; }
+.vlabel.lu { fill: var(--gain); }
+.vlabel.ld { fill: var(--loss); }
+.xhair { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; }
+.tip {
+  position: absolute; top: 8px; transform: translateX(-50%); pointer-events: none;
+  background: #1F2328; border: 1px solid #32363B; border-radius: 8px;
+  padding: 7px 11px; font-size: 12px; white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.tip .tt { font-weight: 600; font-size: 12.5px; }
+.tip .tv { font-weight: 550; }
+.tip .tm { color: var(--text-3); }
+.xlabels {
+  display: flex; margin-top: 6px; padding: 10px 34px 0;
+  border-top: 1px solid var(--border);
+}
+.xlabels div { flex: 1; text-align: center; min-width: 0; }
+.xlabels div:first-child { text-align: left; }
+.xlabels div:last-child { text-align: right; }
+.xlabels .t { font-size: 12px; font-weight: 600; }
+.xlabels .d { font-size: 11px; color: var(--text-3); }
+
 /* table card */
 .tablecard {
   background: var(--card); border: 1px solid var(--border);
@@ -116,4 +162,5 @@ td.close { color: var(--text-2); }
   .stats { grid-template-columns: 1fr; }
   td.close, th.close { display: none; }
   .meter { width: 72px; }
+  .xlabels .d { display: none; }
 }

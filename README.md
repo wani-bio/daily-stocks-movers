@@ -100,9 +100,12 @@ is throttled to 5 req/s so the public endpoint can't exhaust free-tier usage.
 
 ## Security
 
-- No secrets in the repo: the Massive key lives in `terraform.tfvars` (gitignored) and
-  reaches the Lambda as an environment variable; the example file shows the shape.
-- Least-privilege IAM per function (write-only vs read-only on the one table).
+- No secrets in the repo: the Massive key lives in `terraform.tfvars` (gitignored),
+  which Terraform stores in **AWS Secrets Manager**; the Lambda receives only the
+  secret's ARN and fetches the value at cold start.
+- Least-privilege IAM per function (write-only vs read-only on the one table; the
+  ingest role can additionally read exactly one secret).
+- A **CloudWatch alarm** on ingest Lambda errors emails via SNS if a nightly run fails.
 - CORS on the API is locked to the site origin (plus localhost dev ports), not `*`.
 - The S3 bucket policy allows public `GetObject` only — required for static website
   hosting.
@@ -126,9 +129,6 @@ Required repo secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
   therefore validates IaC but doesn't apply it.
 - **DynamoDB `Scan` in the API.** The table gains one small row per trading day, so a
   scan is effectively free; a GSI + Query would be warranted past ~1k rows.
-- **Env var instead of Secrets Manager.** The Massive key is a free-tier key for public
-  market data; Secrets Manager would add cost/complexity without changing the threat
-  model here. The wiring point (one Terraform variable) makes the swap trivial later.
 - **HTTP-only site URL.** S3 website endpoints don't support HTTPS; CloudFront in front
   would add TLS and was skipped to stay within the brief's scope.
 - **Sequential ticker fetches.** Parallelizing would hit the 5 req/min limit harder, not

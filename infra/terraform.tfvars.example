@@ -1,2 +1,3 @@
 # Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
 massive_api_key = "your_massive_api_key_here"
+alert_email     = "you@example.com"

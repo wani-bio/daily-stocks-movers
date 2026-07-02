@@ -13,7 +13,16 @@ import urllib.request
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-MASSIVE_API_KEY = os.environ["MASSIVE_API_KEY"]
+def _api_key() -> str:
+    """Secrets Manager in Lambda; plain env var for local runs/tests."""
+    arn = os.environ.get("MASSIVE_SECRET_ARN")
+    if not arn:
+        return os.environ["MASSIVE_API_KEY"]
+    import boto3
+    return boto3.client("secretsmanager").get_secret_value(SecretId=arn)["SecretString"]
+
+
+MASSIVE_API_KEY = _api_key()  # fetched once per cold start
 MASSIVE_BASE_URL = os.environ.get("MASSIVE_BASE_URL", "https://api.massive.com")
 WATCHLIST = os.environ.get("WATCHLIST", "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA").split(",")
 DDB_TABLE = os.environ.get("DDB_TABLE", "stocks-movers")

@@ -28,6 +28,11 @@ variable "watchlist" {
   default     = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA"
 }
 
+variable "alert_email" {
+  description = "Email address for ingest-failure CloudWatch alerts"
+  type        = string
+}
+
 variable "ingest_schedule" {
   description = "EventBridge cron for daily ingestion (01:30 UTC = after US market close + data settle)"
   type        = string

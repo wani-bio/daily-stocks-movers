@@ -32,6 +32,11 @@ resource "aws_iam_role_policy" "ingest" {
       },
       {
         Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = aws_secretsmanager_secret.massive.arn
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
       }
@@ -51,10 +56,10 @@ resource "aws_lambda_function" "ingest" {
 
   environment {
     variables = {
-      MASSIVE_API_KEY  = var.massive_api_key
-      MASSIVE_BASE_URL = var.massive_base_url
-      WATCHLIST        = var.watchlist
-      DDB_TABLE        = aws_dynamodb_table.movers.name
+      MASSIVE_SECRET_ARN = aws_secretsmanager_secret.massive.arn
+      MASSIVE_BASE_URL   = var.massive_base_url
+      WATCHLIST          = var.watchlist
+      DDB_TABLE          = aws_dynamodb_table.movers.name
     }
   }
 }
