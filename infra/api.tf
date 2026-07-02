@@ -61,7 +61,7 @@ resource "aws_apigatewayv2_api" "movers" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["*"] # ponytail: tighten to the S3 site URL after milestone 5
+    allow_origins = ["http://${aws_s3_bucket_website_configuration.site.website_endpoint}", "http://localhost:4173", "http://localhost:5173"]
     allow_methods = ["GET"]
     allow_headers = ["Content-Type"]
     max_age       = 3600
