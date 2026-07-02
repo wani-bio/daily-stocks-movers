@@ -45,13 +45,13 @@ def fetch_open_close(ticker: str, day: str) -> dict | None:
             if e.code == 403:
                 raise DataNotReady(day)
             if e.code == 429 or e.code >= 500:
-                # ponytail: fixed backoff, good enough for 6 tickers under a 5/min limit
-                wait = 15 * (attempt + 1)
+                # 30/60/90s: a fully spent 5-req/min budget always recovers by attempt 2
+                wait = 30 * (attempt + 1)
                 print(f"{ticker}: HTTP {e.code}, retry in {wait}s")
                 time.sleep(wait)
                 continue
             raise
-        except urllib.error.URLError as e:
+        except (urllib.error.URLError, TimeoutError) as e:
             print(f"{ticker}: network error {e}, retry {attempt + 1}")
             time.sleep(5)
     raise RuntimeError(f"Failed to fetch {ticker} after {MAX_RETRIES} attempts")
