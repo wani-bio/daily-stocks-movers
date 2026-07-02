@@ -5,3 +5,7 @@ output "dynamodb_table" {
 output "ingest_lambda" {
   value = aws_lambda_function.ingest.function_name
 }
+
+output "api_url" {
+  value = "${aws_apigatewayv2_api.movers.api_endpoint}/movers"
+}
