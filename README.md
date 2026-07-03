@@ -7,6 +7,8 @@ highest absolute % change, up or down — and shows the 7-day history on a publi
 **Live site:** http://stock-movers-site-393818036549.s3-website-us-east-1.amazonaws.com
 **Live API:** https://5otcpnjj2f.execute-api.us-east-1.amazonaws.com/movers
 
+![Movers dashboard — daily top mover stats, interactive 7-day chart, and history table](dashboard.png)
+
 ## Architecture
 
 ```
