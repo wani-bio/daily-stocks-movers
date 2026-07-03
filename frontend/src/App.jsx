@@ -19,7 +19,7 @@ function Logo() {
   )
 }
 
-function Stats({ movers }) {
+function Stats({ movers, days }) {
   const latest = movers[0]
   const gains = movers.filter((m) => m.percent_change >= 0)
   const losses = movers.filter((m) => m.percent_change < 0)
@@ -31,6 +31,10 @@ function Stats({ movers }) {
     : null
   const up = latest.percent_change >= 0
 
+  let streak = 1
+  while (streak < movers.length && movers[streak].ticker === latest.ticker) streak++
+  const avgMove = movers.reduce((s, m) => s + Math.abs(m.percent_change), 0) / movers.length
+
   return (
     <section className="stats">
       <div className="stat primary">
@@ -41,26 +45,43 @@ function Stats({ movers }) {
             {up ? '▲' : '▼'} {Math.abs(latest.percent_change).toFixed(2)}%
           </span>
         </div>
-        <div className="sub num">Closed at ${latest.closing_price.toFixed(2)}</div>
+        <div className="sub num">
+          Closed at ${latest.closing_price.toFixed(2)}
+          {streak > 1 && <span className="streak"> · {streak} days running</span>}
+        </div>
       </div>
       <div className="stat">
-        <div className="label">Biggest gain · 7d</div>
+        <div className="label">Biggest gain · {days}d</div>
         <div className="value num up">{best ? fmtPct(best.percent_change) : '—'}</div>
         <div className="sub">{best ? `${best.ticker} · ${fmtDate(best.date, { month: 'short', day: 'numeric' })}` : 'no up days'}</div>
       </div>
       <div className="stat">
-        <div className="label">Biggest drop · 7d</div>
+        <div className="label">Biggest drop · {days}d</div>
         <div className="value num down">{worst ? fmtPct(worst.percent_change) : '—'}</div>
         <div className="sub">{worst ? `${worst.ticker} · ${fmtDate(worst.date, { month: 'short', day: 'numeric' })}` : 'no down days'}</div>
       </div>
       <div className="stat">
-        <div className="label">Direction · 7d</div>
+        <div className="label">Direction · {days}d</div>
         <div className="value num">
           {gains.length}<span className="slash">/</span>{losses.length}
         </div>
-        <div className="sub">up days vs down days</div>
+        <div className="sub num">up vs down days · avg move {avgMove.toFixed(2)}%</div>
       </div>
     </section>
+  )
+}
+
+function Leaderboard({ movers }) {
+  const counts = {}
+  movers.forEach((m) => { counts[m.ticker] = (counts[m.ticker] || 0) + 1 })
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  return (
+    <div className="board num">
+      <span className="blabel">Top-mover wins</span>
+      {rows.map(([ticker, n]) => (
+        <span key={ticker} className="bchip">{ticker} <b>×{n}</b></span>
+      ))}
+    </div>
   )
 }
 
@@ -185,12 +206,16 @@ function Chart({ movers }) {
         )}
       </div>
       <div className="xlabels" style={{ paddingLeft: PADX, paddingRight: PADX }}>
-        {pts.map((p) => (
-          <div key={p.date}>
-            <div className="t">{p.ticker}</div>
-            <div className="d">{fmtDate(p.date, { month: 'short', day: 'numeric' })}</div>
-          </div>
-        ))}
+        {pts.map((p, i) => {
+          const every = Math.ceil(pts.length / 8) // thin labels on long windows
+          const show = i % every === 0 || i === pts.length - 1
+          return (
+            <div key={p.date} style={show ? undefined : { visibility: 'hidden' }}>
+              <div className="t">{p.ticker}</div>
+              <div className="d">{fmtDate(p.date, { month: 'short', day: 'numeric' })}</div>
+            </div>
+          )
+        })}
       </div>
     </section>
   )
@@ -240,16 +265,46 @@ function Ledger({ movers }) {
   )
 }
 
+// Most recent weekday before today (UTC) — the newest date we could have data for.
+function lastExpectedTradingDay() {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - 1)
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+function CopyButton({ latest }) {
+  const [copied, setCopied] = useState(false)
+  const summary = `${latest.ticker} ${fmtPct(latest.percent_change)} was the watchlist's top mover on ${fmtDate(latest.date, { month: 'short', day: 'numeric', year: 'numeric' })}, closing at $${latest.closing_price.toFixed(2)}.`
+  return (
+    <button
+      className="copy"
+      onClick={() => {
+        navigator.clipboard.writeText(summary).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+    >
+      {copied ? 'Copied ✓' : 'Copy summary'}
+    </button>
+  )
+}
+
 export default function App() {
   const [movers, setMovers] = useState(null)
   const [error, setError] = useState(null)
+  const [days, setDays] = useState(7)
 
   useEffect(() => {
-    fetch(API_URL)
+    setError(null)
+    fetch(`${API_URL}?days=${days}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => setMovers(data.movers))
       .catch((e) => setError(e.message))
-  }, [])
+  }, [days])
+
+  const stale = movers?.length > 0 && movers[0].date < lastExpectedTradingDay()
 
   return (
     <div className="shell">
@@ -271,7 +326,24 @@ export default function App() {
       {movers?.length === 0 && <div className="state">No movers recorded yet — check back after the next market close.</div>}
       {movers?.length > 0 && (
         <>
-          <Stats movers={movers} />
+          <div className="toolrow">
+            <div className="range" role="group" aria-label="History window">
+              {[7, 14, 30].map((n) => (
+                <button key={n} className={n === days ? 'on' : ''} onClick={() => setDays(n)}>
+                  {n}d
+                </button>
+              ))}
+            </div>
+            <CopyButton latest={movers[0]} />
+          </div>
+          {stale && (
+            <div className="state">
+              No data for {fmtDate(lastExpectedTradingDay())} yet — US market holiday, or the nightly
+              refresh hasn’t run. Showing the last recorded trading day.
+            </div>
+          )}
+          <Stats movers={movers} days={days} />
+          <Leaderboard movers={movers} />
           {movers.length >= 2 && <Chart movers={movers} />}
           <Ledger movers={movers} />
         </>

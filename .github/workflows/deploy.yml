@@ -21,6 +21,8 @@ jobs:
           python-version: "3.12"
       - name: Run ingest logic tests
         run: python src/ingest/test_handler.py
+      - name: Run api logic tests
+        run: python src/api/test_handler.py
 
   # State lives in S3, so CI can apply infrastructure changes directly.
   deploy-infra:

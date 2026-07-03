@@ -48,6 +48,32 @@ body {
 h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0 4px; }
 .lede { color: var(--text-2); font-size: 14px; max-width: 56ch; }
 
+/* tool row: range selector + copy button */
+.toolrow { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 12px; flex-wrap: wrap; }
+.range { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.range button {
+  background: none; border: none; color: var(--text-2); font: inherit; font-size: 12.5px;
+  padding: 5px 12px; cursor: pointer;
+}
+.range button + button { border-left: 1px solid var(--border); }
+.range button.on { background: var(--card); color: var(--text); font-weight: 550; }
+.copy {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-2); font: inherit; font-size: 12.5px; padding: 5px 12px; cursor: pointer;
+}
+.copy:hover, .range button:hover { color: var(--text); }
+
+/* leaderboard */
+.board { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -16px 0 28px; }
+.blabel { font-size: 12px; color: var(--text-3); letter-spacing: 0.02em; }
+.bchip {
+  border: 1px solid var(--border); background: var(--card); border-radius: 999px;
+  font-size: 12.5px; padding: 2px 10px; color: var(--text-2);
+}
+.bchip b { color: var(--text); font-weight: 550; }
+
+.streak { color: var(--gain); }
+
 /* stat row */
 .stats { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; margin: 24px 0 28px; }
 .stat {

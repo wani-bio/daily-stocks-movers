@@ -67,9 +67,21 @@ aws lambda invoke --function-name stock-movers-ingest \
   --payload '{"date":"2026-06-25"}' out.json
 ```
 
+## Beyond the brief
+
+- **History window** — the dashboard can switch between 7/14/30 days (`?days=N` on the API).
+- **Streak + leaderboard** — the dashboard calls out when one ticker tops the list several
+  days running, and counts each ticker's "wins" over the window.
+- **Volatility read** — average absolute daily move over the window.
+- **Copy summary** — one-click clipboard summary of the latest mover.
+- **Holiday awareness** — if the latest expected trading day has no data (market holiday
+  or delayed refresh), the dashboard says so instead of silently showing stale numbers.
+- **Manual backfill** — the ingest Lambda accepts `{"date": "YYYY-MM-DD"}` to repair gaps.
+
 ## API
 
-`GET /movers` → last 7 recorded days, newest first:
+`GET /movers` → last 7 recorded days, newest first (`?days=N`, 1–30, for a different
+window; non-integer `days` returns 400):
 
 ```json
 {
@@ -111,7 +123,7 @@ is throttled to 5 req/s so the public endpoint can't exhaust free-tier usage.
 ## CI/CD
 
 On every push to `main`, GitHub Actions:
-1. runs the ingest logic test,
+1. runs the ingest and API logic tests,
 2. applies the Terraform (state lives in S3 with native locking, so CI and any
    developer machine share one source of truth),
 3. builds the frontend and syncs it to S3.
