@@ -11,20 +11,10 @@ highest absolute % change, up or down — and shows the 7-day history on a publi
 
 ## Architecture
 
-```
-EventBridge (cron, 01:30 UTC Tue–Sat)
-        │
-        ▼
-Ingest Lambda ──► Massive API (open/close per ticker)
-        │           computes ((close − open) / open) × 100, keeps the biggest |move|
-        ▼
-    DynamoDB  (one row per trading day: date, ticker, percent_change, closing_price)
-        ▲
-        │  Scan, newest 7
- Retrieval Lambda ◄── API Gateway (HTTP API)  ◄── GET /movers
-                                                     ▲
-                                    React SPA on S3 ─┘
-```
+![Architecture — ingestion and retrieval flows, monitoring, and CI/CD](architecture.png)
+
+The mover math: `((close − open) / open) × 100`, keeping the biggest absolute move
+across the watchlist each day.
 
 Ingestion (cron) and retrieval (API) are separate Lambdas with separate least-privilege
 IAM roles: the ingest role can only `dynamodb:PutItem` on the table, the API role only
