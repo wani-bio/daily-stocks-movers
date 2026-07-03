@@ -22,21 +22,30 @@ jobs:
       - name: Run ingest logic tests
         run: python src/ingest/test_handler.py
 
-  # Infra is applied locally via `terraform apply` (state is local; see README).
-  # CI validates formatting/config so broken IaC can't merge silently.
-  validate-infra:
+  # State lives in S3, so CI can apply infrastructure changes directly.
+  deploy-infra:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - name: Terraform validate
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform apply
         working-directory: infra
+        env:
+          TF_VAR_massive_api_key: ${{ secrets.MASSIVE_API_KEY }}
+          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
         run: |
-          terraform init -backend=false -input=false
+          terraform init -input=false
           terraform validate
+          terraform apply -auto-approve -input=false
 
   deploy-frontend:
-    needs: [test, validate-infra]
+    needs: deploy-infra
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

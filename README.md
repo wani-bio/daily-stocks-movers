@@ -45,10 +45,16 @@ Prerequisites: Terraform ≥ 1.5, AWS CLI configured (`aws configure`), Node ≥
 and a free [Massive](https://massive.com) API key.
 
 ```bash
+# 0. One-time bootstrap: the bucket that holds Terraform's remote state
+#    (Terraform can't store state in a bucket it hasn't created yet)
+aws s3api create-bucket --bucket stock-movers-tfstate-<YOUR_ACCOUNT_ID> --region us-east-1
+aws s3api put-bucket-versioning --bucket stock-movers-tfstate-<YOUR_ACCOUNT_ID> \
+  --versioning-configuration Status=Enabled
+
 # 1. Infrastructure
 cd infra
 cp terraform.tfvars.example terraform.tfvars   # paste your Massive API key inside
-terraform init
+terraform init                                  # connects to the S3 backend
 terraform apply                                 # creates everything; note the outputs
 
 # 2. Frontend
@@ -116,22 +122,26 @@ is throttled to 5 req/s so the public endpoint can't exhaust free-tier usage.
 
 On every push to `main`, GitHub Actions:
 1. runs the ingest logic test,
-2. validates the Terraform,
+2. applies the Terraform (state lives in S3 with native locking, so CI and any
+   developer machine share one source of truth),
 3. builds the frontend and syncs it to S3.
 
-Infrastructure changes are applied locally with `terraform apply` (state is local for
-this single-developer project — see trade-offs).
-
-Required repo secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
+Required repo secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+`MASSIVE_API_KEY`, `ALERT_EMAIL`.
 
 ## Trade-offs
 
-- **Local Terraform state.** A remote S3 backend with locking is the production answer;
-  for a one-week single-developer project, local state keeps the bootstrap simple. CI
-  therefore validates IaC but doesn't apply it.
+- **One manual bootstrap step.** Terraform state lives in a versioned S3 bucket with
+  native locking, so CI and developers share one source of truth — but that bucket
+  itself must be created once by CLI, since Terraform can't store state in a bucket
+  it hasn't created yet. A known and accepted chicken-and-egg in every Terraform setup.
 - **DynamoDB `Scan` in the API.** The table gains one small row per trading day, so a
   scan is effectively free; a GSI + Query would be warranted past ~1k rows.
 - **HTTP-only site URL.** S3 website endpoints don't support HTTPS; CloudFront in front
   would add TLS and was skipped to stay within the brief's scope.
 - **Sequential ticker fetches.** Parallelizing would hit the 5 req/min limit harder, not
   faster — the rate limit, not I/O, is the bottleneck.
+- **The chart mixes tickers.** A classic market chart plots one instrument; ours plots
+  "whoever moved most each day," so the line hops between stocks. Each point is
+  labeled with its ticker (axis + crosshair) to keep that honest — the line shows the
+  week's volatility shape, the labels show who caused it.

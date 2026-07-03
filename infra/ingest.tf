@@ -1,12 +1,13 @@
-# --- Ingestion Lambda: EventBridge cron -> fetch movers -> DynamoDB ---
+# --- Ingestion side: EventBridge cron -> Lambda -> DynamoDB ---
 
+# Zips the ingest handler so Lambda can deploy it; re-zips only when the source changes.
 data "archive_file" "ingest" {
   type        = "zip"
   source_file = "${path.module}/../src/ingest/handler.py"
   output_path = "${path.module}/build/ingest.zip"
 }
 
-# Least privilege: this role can only write to the movers table + write logs.
+# Execution role the ingest Lambda assumes; grants nothing by itself.
 resource "aws_iam_role" "ingest" {
   name = "${var.project}-ingest-role"
   assume_role_policy = jsonencode({
@@ -19,6 +20,8 @@ resource "aws_iam_role" "ingest" {
   })
 }
 
+# Least privilege for ingestion: write to the one table, read the one API-key
+# secret, emit logs. No read access to the table, no other secrets.
 resource "aws_iam_role_policy" "ingest" {
   name = "${var.project}-ingest-policy"
   role = aws_iam_role.ingest.id
@@ -44,6 +47,9 @@ resource "aws_iam_role_policy" "ingest" {
   })
 }
 
+# The ingest function: fetches open/close for the watchlist, computes the day's
+# top absolute % mover, writes it to DynamoDB. 5-minute timeout because
+# rate-limit backoff against the free stock API can legitimately take minutes.
 resource "aws_lambda_function" "ingest" {
   function_name    = "${var.project}-ingest"
   role             = aws_iam_role.ingest.arn
@@ -64,17 +70,19 @@ resource "aws_lambda_function" "ingest" {
   }
 }
 
-# --- Daily cron trigger ---
+# Daily schedule: fires after US market close (+ data-settle time) on trading days.
 resource "aws_cloudwatch_event_rule" "daily" {
   name                = "${var.project}-daily-ingest"
   schedule_expression = var.ingest_schedule
 }
 
+# Points the schedule at the ingest Lambda.
 resource "aws_cloudwatch_event_target" "ingest" {
   rule = aws_cloudwatch_event_rule.daily.name
   arn  = aws_lambda_function.ingest.arn
 }
 
+# Lets EventBridge (and only this rule) invoke the ingest Lambda.
 resource "aws_lambda_permission" "eventbridge" {
   statement_id  = "AllowEventBridge"
   action        = "lambda:InvokeFunction"

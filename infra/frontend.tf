@@ -1,12 +1,16 @@
-# --- S3 static website hosting for the React frontend ---
-# Content is uploaded separately: `aws s3 sync ../frontend/dist s3://<bucket>`
+# --- Frontend hosting: React SPA on S3 static website hosting ---
+# Content is uploaded by CI (aws s3 sync frontend/dist), not by Terraform.
 
+# The site bucket; account ID suffix keeps the name globally unique.
 resource "aws_s3_bucket" "site" {
   bucket = "${var.project}-site-${data.aws_caller_identity.current.account_id}"
 }
 
+# Looks up the current AWS account ID for the bucket name above.
 data "aws_caller_identity" "current" {}
 
+# Turns the bucket into a website endpoint; errors route back to index.html
+# so SPA client-side routing works on refresh/deep links.
 resource "aws_s3_bucket_website_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 
@@ -19,6 +23,8 @@ resource "aws_s3_bucket_website_configuration" "site" {
   }
 }
 
+# Public-access settings: ACLs stay blocked; only a bucket *policy* may grant
+# public read (required for static website hosting).
 resource "aws_s3_bucket_public_access_block" "site" {
   bucket                  = aws_s3_bucket.site.id
   block_public_acls       = true
@@ -27,6 +33,7 @@ resource "aws_s3_bucket_public_access_block" "site" {
   restrict_public_buckets = false
 }
 
+# Grants the public exactly one permission: read objects. No list, no write.
 resource "aws_s3_bucket_policy" "site" {
   bucket     = aws_s3_bucket.site.id
   depends_on = [aws_s3_bucket_public_access_block.site]
