@@ -278,7 +278,7 @@ export default function App() {
       )}
 
       <div className="foot">
-        <span>Data: Massive · refreshed nightly at 01:30 UTC</span>
+        <span>Data: Massive · refreshed nightly at 06:00 UTC</span>
       </div>
     </div>
   )
