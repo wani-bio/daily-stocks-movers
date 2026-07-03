@@ -34,7 +34,7 @@ variable "alert_email" {
 }
 
 variable "ingest_schedule" {
-  description = "EventBridge cron for daily ingestion (01:30 UTC = after US market close + data settle)"
+  description = "EventBridge cron for daily ingestion (06:00 UTC = well after US market close; 01:30 proved too early for the API's data settle)"
   type        = string
-  default     = "cron(30 1 ? * TUE-SAT *)" # Tue-Sat UTC = Mon-Fri market days
+  default     = "cron(0 6 ? * TUE-SAT *)" # Tue-Sat UTC = Mon-Fri market days
 }
