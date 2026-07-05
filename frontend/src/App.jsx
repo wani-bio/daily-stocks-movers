@@ -280,10 +280,19 @@ function CopyButton({ latest }) {
     <button
       className="copy"
       onClick={() => {
-        navigator.clipboard.writeText(summary).then(() => {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1500)
-        })
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(summary)
+        } else {
+          // S3 website hosting is HTTP-only and navigator.clipboard needs HTTPS
+          const ta = document.createElement('textarea')
+          ta.value = summary
+          document.body.appendChild(ta)
+          ta.select()
+          document.execCommand('copy')
+          ta.remove()
+        }
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
       }}
     >
       {copied ? 'Copied ✓' : 'Copy summary'}
