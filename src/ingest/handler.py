@@ -66,6 +66,61 @@ def fetch_open_close(ticker: str, day: str) -> dict | None:
     raise RuntimeError(f"Failed to fetch {ticker} after {MAX_RETRIES} attempts")
 
 
+def _extract_news(payload: dict, ticker: str) -> dict | None:
+    """Pull headline/url/source/sentiment/reasoning for `ticker` from /v2/reference/news.
+
+    Prefers the first article whose insights actually analyze `ticker` (those carry a
+    sentiment_reasoning sentence explaining the move); falls back to the newest article.
+    """
+    results = payload.get("results") or []
+
+    def insight_for(art):
+        return next((i for i in art.get("insights") or [] if i.get("ticker") == ticker), None)
+
+    art = next((a for a in results if insight_for(a) and (insight_for(a).get("sentiment_reasoning"))), None) \
+        or (results[0] if results else None)
+    if not art or not art.get("title"):
+        return None
+
+    news = {
+        "headline": art.get("title"),
+        "news_url": art.get("article_url"),
+        "news_source": (art.get("publisher") or {}).get("name"),
+    }
+    ins = insight_for(art)
+    if ins:
+        news["sentiment"] = ins.get("sentiment")
+        if ins.get("sentiment_reasoning"):
+            news["news_reason"] = ins["sentiment_reasoning"]
+    return news
+
+
+def fetch_news(ticker: str, day: str) -> dict | None:
+    """Most recent headline for `ticker` published on `day`. Best effort:
+    returns None on any failure — a missing headline must never sink the run."""
+    nxt = (date.fromisoformat(day) + timedelta(days=1)).isoformat()
+    url = (f"{MASSIVE_BASE_URL}/v2/reference/news?ticker={ticker}"
+           f"&published_utc.gte={day}&published_utc.lt={nxt}"
+           f"&limit=10&sort=published_utc&order=descending&apiKey={MASSIVE_API_KEY}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                return _extract_news(json.loads(resp.read()), ticker)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 or e.code >= 500:
+                wait = 30 * (attempt + 1)
+                print(f"news {ticker}: HTTP {e.code}, retry in {wait}s")
+                time.sleep(wait)
+                continue
+            print(f"news {ticker}: HTTP {e.code}, skipping headline")
+            return None
+        except Exception as e:  # ponytail: news is decoration, never fail ingest for it
+            print(f"news {ticker}: {e}, skipping headline")
+            return None
+    print(f"news {ticker}: rate-limited out, skipping headline")
+    return None
+
+
 def find_top_mover(day: str) -> dict | None:
     """Return the watchlist stock with the highest absolute % change for `day`."""
     top = None
@@ -102,13 +157,17 @@ def store_result(item: dict) -> None:
     import boto3  # ponytail: import here so local --dry-run needs no boto3
 
     table = boto3.resource("dynamodb").Table(DDB_TABLE)
-    table.put_item(Item={
+    row = {
         "date": item["date"],
         "ticker": item["ticker"],
         "percent_change": Decimal(str(item["percent_change"])),
         "closing_price": Decimal(str(item["closing_price"])),
         "updated_at": datetime.utcnow().isoformat() + "Z",
-    })
+    }
+    for k in ("headline", "news_url", "news_source", "sentiment", "news_reason"):
+        if item.get(k):
+            row[k] = item[k]
+    table.put_item(Item=row)
 
 
 def lambda_handler(event, context):
@@ -122,6 +181,10 @@ def lambda_handler(event, context):
     if top is None:
         print(f"No trading data for {day_str} (holiday?) — nothing stored.")
         return {"statusCode": 200, "body": f"no data for {day_str}"}
+
+    news = fetch_news(top["ticker"], top["date"])
+    if news:
+        top.update(news)
 
     store_result(top)
     print(f"Stored top mover: {top}")

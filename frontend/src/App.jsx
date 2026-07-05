@@ -65,7 +65,24 @@ function Stats({ movers, days }) {
         <div className="value num">
           {gains.length}<span className="slash">/</span>{losses.length}
         </div>
-        <div className="sub num">up vs down days · avg move {avgMove.toFixed(2)}%</div>
+        <div className="sub num">up vs down · avg {avgMove.toFixed(2)}%</div>
+      </div>
+    </section>
+  )
+}
+
+function NewsStrip({ latest }) {
+  if (!latest.headline) return null
+  return (
+    <section className="newscard">
+      <div className="nlabel">
+        {latest.sentiment && <span className={`sdot ${latest.sentiment}`} />}
+        In the news · {latest.ticker}
+      </div>
+      {latest.news_reason && <p className="nreason">{latest.news_reason}</p>}
+      <div className="nmeta">
+        <a href={latest.news_url} target="_blank" rel="noreferrer">{latest.headline}</a>
+        {latest.news_source && <span className="nsrc"> · {latest.news_source}</span>}
       </div>
     </section>
   )
@@ -352,6 +369,7 @@ export default function App() {
             </div>
           )}
           <Stats movers={movers} days={days} />
+          <NewsStrip latest={movers[0]} />
           <Leaderboard movers={movers} />
           {movers.length >= 2 && <Chart movers={movers} />}
           <Ledger movers={movers} />

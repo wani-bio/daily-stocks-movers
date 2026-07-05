@@ -74,6 +74,24 @@ h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0
 
 .streak { color: var(--gain); }
 
+/* related-news strip */
+.newscard {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 18px; margin: -12px 0 28px;
+}
+.nlabel { font-size: 12px; color: var(--text-3); letter-spacing: 0.02em; margin-bottom: 6px; }
+.nreason { font-size: 14px; color: var(--text); margin-bottom: 6px; max-width: 72ch; }
+.nmeta { font-size: 12.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nmeta a { color: var(--text-2); text-decoration: none; border-bottom: 1px dotted var(--text-3); }
+.nmeta a:hover { color: var(--text); }
+.nsrc { color: var(--text-3); }
+.sdot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-3); margin-right: 6px; vertical-align: 1px;
+}
+.sdot.bullish, .sdot.positive { background: var(--gain); }
+.sdot.bearish, .sdot.negative { background: var(--loss); }
+
 /* stat row */
 .stats { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; margin: 24px 0 28px; }
 .stat {

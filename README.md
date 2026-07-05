@@ -77,6 +77,10 @@ aws lambda invoke --function-name stock-movers-ingest \
 - **Holiday awareness** — if the latest expected trading day has no data (market holiday
   or delayed refresh), the dashboard says so instead of silently showing stale numbers.
 - **Manual backfill** — the ingest Lambda accepts `{"date": "YYYY-MM-DD"}` to repair gaps.
+- **Related headline** — ingestion also grabs the day's most recent news article for the
+  winning ticker (Massive `/v2/reference/news`), with the provider's sentiment tag shown
+  as a green/red dot. Labeled "related", not causal — a same-day headline isn't proof of
+  why a stock moved. Best-effort: if the news call fails, the mover is stored without it.
 
 ## API
 
