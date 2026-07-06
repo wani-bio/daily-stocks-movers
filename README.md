@@ -78,9 +78,15 @@ aws lambda invoke --function-name stock-movers-ingest \
   or delayed refresh), the dashboard says so instead of silently showing stale numbers.
 - **Manual backfill** — the ingest Lambda accepts `{"date": "YYYY-MM-DD"}` to repair gaps.
 - **Related headline** — ingestion also grabs the day's most recent news article for the
-  winning ticker (Massive `/v2/reference/news`), with the provider's sentiment tag shown
-  as a green/red dot. Labeled "related", not causal — a same-day headline isn't proof of
-  why a stock moved. Best-effort: if the news call fails, the mover is stored without it.
+  winning ticker (Massive `/v2/reference/news`), preferring articles that specifically
+  analyze that ticker; their per-ticker sentiment reasoning is shown as the explanation,
+  with a green/red sentiment dot. Labeled "related", not causal — a same-day headline
+  isn't proof of why a stock moved. Best-effort: if the news call fails, the mover is
+  stored without it. Click any table row to see that day's news.
+- **Day-explainer AI chat** — `POST /chat` (same Lambda) answers questions about a
+  recorded day using Gemini, grounded in that day's stored facts. The key lives in
+  Secrets Manager; the endpoint validates input (max 12 messages of 500 chars), returns
+  proper 400/404/502s, and the UI flags replies as commentary, not financial advice.
 
 ## API
 
@@ -133,7 +139,7 @@ On every push to `main`, GitHub Actions:
 3. builds the frontend and syncs it to S3.
 
 Required repo secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-`MASSIVE_API_KEY`, `ALERT_EMAIL`.
+`MASSIVE_API_KEY`, `GEMINI_API_KEY`, `ALERT_EMAIL`.
 
 ## Trade-offs
 

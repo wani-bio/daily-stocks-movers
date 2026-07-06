@@ -13,6 +13,17 @@ resource "aws_secretsmanager_secret_version" "massive" {
   secret_string = var.massive_api_key
 }
 
+# Gemini key for the day-explainer chat; same pattern as the Massive key.
+resource "aws_secretsmanager_secret" "gemini" {
+  name                    = "${var.project}-gemini-api-key"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "gemini" {
+  secret_id     = aws_secretsmanager_secret.gemini.id
+  secret_string = var.gemini_api_key
+}
+
 # Notification channel for pipeline failures.
 resource "aws_sns_topic" "alerts" {
   name = "${var.project}-alerts"

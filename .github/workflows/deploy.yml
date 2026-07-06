@@ -40,6 +40,7 @@ jobs:
         working-directory: infra
         env:
           TF_VAR_massive_api_key: ${{ secrets.MASSIVE_API_KEY }}
+          TF_VAR_gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
         run: |
           terraform init -input=false

@@ -17,6 +17,10 @@ top = handler.find_top_mover("2026-01-02")
 assert top["ticker"] == "MSFT", top
 assert top["percent_change"] == -5.0, top
 assert top["closing_price"] == 95.0, top
+assert top["all_movers"] == {
+    "AAPL": {"percent_change": 2.0, "closing_price": 102.0},
+    "MSFT": {"percent_change": -5.0, "closing_price": 95.0},
+}, top["all_movers"]  # GOOGL had no data, so it's absent
 
 NEWS_PAYLOAD = {"results": [
     {   # newest, but only mentions MSFT in passing — no MSFT insight

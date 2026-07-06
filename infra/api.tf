@@ -20,8 +20,8 @@ resource "aws_iam_role" "api" {
   })
 }
 
-# Least privilege for retrieval: read the one table, emit logs. No writes,
-# no secrets — the API side never talks to the stock API.
+# Least privilege for retrieval + chat: read the one table, read the one
+# Gemini secret, emit logs. No writes, no stock-API secret.
 resource "aws_iam_role_policy" "api" {
   name = "${var.project}-api-policy"
   role = aws_iam_role.api.id
@@ -30,8 +30,13 @@ resource "aws_iam_role_policy" "api" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["dynamodb:Scan"]
+        Action   = ["dynamodb:Scan", "dynamodb:GetItem"]
         Resource = aws_dynamodb_table.movers.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = aws_secretsmanager_secret.gemini.arn
       },
       {
         Effect   = "Allow"
@@ -50,12 +55,14 @@ resource "aws_lambda_function" "api" {
   handler          = "handler.lambda_handler"
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
-  timeout          = 10
+  timeout          = 30 # the /chat route waits on Gemini
   memory_size      = 128
 
   environment {
     variables = {
-      DDB_TABLE = aws_dynamodb_table.movers.name
+      DDB_TABLE         = aws_dynamodb_table.movers.name
+      GEMINI_SECRET_ARN = aws_secretsmanager_secret.gemini.arn
+      GEMINI_MODEL      = var.gemini_model
     }
   }
 }
@@ -68,7 +75,7 @@ resource "aws_apigatewayv2_api" "movers" {
 
   cors_configuration {
     allow_origins = ["http://${aws_s3_bucket_website_configuration.site.website_endpoint}", "http://localhost:4173", "http://localhost:5173"]
-    allow_methods = ["GET"]
+    allow_methods = ["GET", "POST"]
     allow_headers = ["Content-Type"]
     max_age       = 3600
   }
@@ -82,10 +89,16 @@ resource "aws_apigatewayv2_integration" "movers" {
   payload_format_version = "2.0"
 }
 
-# The one public route: GET /movers.
+# Public routes: GET /movers (data) and POST /chat (day-explainer AI).
 resource "aws_apigatewayv2_route" "movers" {
   api_id    = aws_apigatewayv2_api.movers.id
   route_key = "GET /movers"
+  target    = "integrations/${aws_apigatewayv2_integration.movers.id}"
+}
+
+resource "aws_apigatewayv2_route" "chat" {
+  api_id    = aws_apigatewayv2_api.movers.id
+  route_key = "POST /chat"
   target    = "integrations/${aws_apigatewayv2_integration.movers.id}"
 }
 

@@ -122,15 +122,22 @@ def fetch_news(ticker: str, day: str) -> dict | None:
 
 
 def find_top_mover(day: str) -> dict | None:
-    """Return the watchlist stock with the highest absolute % change for `day`."""
+    """Return the watchlist stock with the highest absolute % change for `day`.
+
+    The result also carries `all_movers`: every ticker's move that day — already
+    fetched anyway, and it grounds the chat's comparative questions.
+    """
     top = None
+    all_movers = {}
     for ticker in WATCHLIST:
-        data = fetch_open_close(ticker.strip(), day)
+        ticker = ticker.strip()
+        data = fetch_open_close(ticker, day)
         if not data or not data.get("open"):
             print(f"{ticker}: no data for {day}")
             continue
         pct = (data["close"] - data["open"]) / data["open"] * 100
         print(f"{ticker}: open={data['open']} close={data['close']} pct={pct:+.2f}%")
+        all_movers[ticker] = {"percent_change": round(pct, 4), "closing_price": data["close"]}
         if top is None or abs(pct) > abs(top["percent_change"]):
             top = {
                 "date": day,
@@ -138,6 +145,8 @@ def find_top_mover(day: str) -> dict | None:
                 "percent_change": round(pct, 4),
                 "closing_price": data["close"],
             }
+    if top:
+        top["all_movers"] = all_movers
     return top
 
 
@@ -167,6 +176,12 @@ def store_result(item: dict) -> None:
     for k in ("headline", "news_url", "news_source", "sentiment", "news_reason"):
         if item.get(k):
             row[k] = item[k]
+    if item.get("all_movers"):
+        row["all_movers"] = {
+            t: {"percent_change": Decimal(str(v["percent_change"])),
+                "closing_price": Decimal(str(v["closing_price"]))}
+            for t, v in item["all_movers"].items()
+        }
     table.put_item(Item=row)
 
 

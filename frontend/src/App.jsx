@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 const API_URL =
   import.meta.env.VITE_API_URL ??
   'https://5otcpnjj2f.execute-api.us-east-1.amazonaws.com/movers'
+const CHAT_URL = API_URL.replace(/\/movers$/, '/chat')
 
 const fmtDate = (iso, opts = { weekday: 'short', month: 'short', day: 'numeric' }) =>
   new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', opts)
@@ -71,19 +72,82 @@ function Stats({ movers, days }) {
   )
 }
 
-function NewsStrip({ latest }) {
-  if (!latest.headline) return null
+function DayChat({ date, ticker }) {
+  const [msgs, setMsgs] = useState([])
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const send = () => {
+    const text = input.trim()
+    if (!text || busy) return
+    const next = [...msgs, { role: 'user', text }]
+    setMsgs(next)
+    setInput('')
+    setBusy(true)
+    fetch(CHAT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, messages: next.slice(-12) }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        const reply = r.ok ? data.reply : `Sorry — ${data.error || `error ${r.status}`}.`
+        setMsgs((m) => [...m, { role: 'model', text: reply }])
+      })
+      .catch(() => setMsgs((m) => [...m, { role: 'model', text: 'Sorry — network error.' }]))
+      .finally(() => setBusy(false))
+  }
+
+  if (!open) {
+    return (
+      <button className="askai" onClick={() => setOpen(true)}>
+        Ask AI about this day
+      </button>
+    )
+  }
+  return (
+    <div className="chat">
+      {msgs.map((m, i) => (
+        <div key={i} className={`cmsg ${m.role}`}>{m.text}</div>
+      ))}
+      {busy && <div className="cmsg model nsrc">Thinking…</div>}
+      <div className="crow">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          placeholder={`Ask why ${ticker} moved on ${fmtDate(date, { month: 'short', day: 'numeric' })}…`}
+          maxLength={500}
+          autoFocus
+        />
+        <button onClick={send} disabled={busy || !input.trim()}>Send</button>
+      </div>
+      <div className="cnote">AI-generated commentary — context, not financial advice.</div>
+    </div>
+  )
+}
+
+function NewsStrip({ mover, picked }) {
+  if (!mover.headline && !picked) return null
   return (
     <section className="newscard">
       <div className="nlabel">
-        {latest.sentiment && <span className={`sdot ${latest.sentiment}`} />}
-        In the news · {latest.ticker}
+        {mover.sentiment && <span className={`sdot ${mover.sentiment}`} />}
+        In the news · {mover.ticker} · {fmtDate(mover.date, { month: 'short', day: 'numeric' })}
       </div>
-      {latest.news_reason && <p className="nreason">{latest.news_reason}</p>}
-      <div className="nmeta">
-        <a href={latest.news_url} target="_blank" rel="noreferrer">{latest.headline}</a>
-        {latest.news_source && <span className="nsrc"> · {latest.news_source}</span>}
-      </div>
+      {mover.headline ? (
+        <>
+          {mover.news_reason && <p className="nreason">{mover.news_reason}</p>}
+          <div className="nmeta">
+            <a href={mover.news_url} target="_blank" rel="noreferrer">{mover.headline}</a>
+            {mover.news_source && <span className="nsrc"> · {mover.news_source}</span>}
+          </div>
+        </>
+      ) : (
+        <p className="nreason nsrc">No headline recorded for this day.</p>
+      )}
+      <DayChat key={mover.date} date={mover.date} ticker={mover.ticker} />
     </section>
   )
 }
@@ -238,7 +302,7 @@ function Chart({ movers }) {
   )
 }
 
-function Ledger({ movers }) {
+function Ledger({ movers, selected, onSelect }) {
   const maxAbs = Math.max(...movers.map((m) => Math.abs(m.percent_change)))
   return (
     <section className="tablecard">
@@ -262,7 +326,11 @@ function Ledger({ movers }) {
               const up = m.percent_change >= 0
               const width = maxAbs ? (Math.abs(m.percent_change) / maxAbs) * 100 : 0
               return (
-                <tr key={m.date}>
+                <tr
+                  key={m.date}
+                  className={m.date === selected ? 'sel' : ''}
+                  onClick={() => onSelect(m.date)}
+                >
                   <td className="date">{fmtDate(m.date)}</td>
                   <td className="ticker">{m.ticker}</td>
                   <td className={`r move ${up ? 'up' : 'down'}`}>{fmtPct(m.percent_change)}</td>
@@ -321,9 +389,11 @@ export default function App() {
   const [movers, setMovers] = useState(null)
   const [error, setError] = useState(null)
   const [days, setDays] = useState(7)
+  const [selected, setSelected] = useState(null) // date whose news is shown; null = latest
 
   useEffect(() => {
     setError(null)
+    setSelected(null)
     fetch(`${API_URL}?days=${days}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => setMovers(data.movers))
@@ -369,10 +439,13 @@ export default function App() {
             </div>
           )}
           <Stats movers={movers} days={days} />
-          <NewsStrip latest={movers[0]} />
+          <NewsStrip
+            mover={movers.find((m) => m.date === selected) || movers[0]}
+            picked={selected != null}
+          />
           <Leaderboard movers={movers} />
           {movers.length >= 2 && <Chart movers={movers} />}
-          <Ledger movers={movers} />
+          <Ledger movers={movers} selected={selected} onSelect={setSelected} />
         </>
       )}
 

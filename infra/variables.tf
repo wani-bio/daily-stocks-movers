@@ -28,6 +28,18 @@ variable "watchlist" {
   default     = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA"
 }
 
+variable "gemini_api_key" {
+  description = "Google Gemini API key for the day-explainer chat (set in terraform.tfvars — never committed)"
+  type        = string
+  sensitive   = true
+}
+
+variable "gemini_model" {
+  description = "Gemini model for the chat endpoint"
+  type        = string
+  default     = "gemini-2.5-flash"
+}
+
 variable "alert_email" {
   description = "Email address for ingest-failure CloudWatch alerts"
   type        = string
