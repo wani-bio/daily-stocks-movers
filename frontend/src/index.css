@@ -178,12 +178,13 @@ h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0
 .tip .tv { font-weight: 550; }
 .tip .tm { color: var(--text-3); }
 .xlabels {
-  display: flex; margin-top: 6px; padding: 10px 34px 0;
+  position: relative; height: 44px; margin-top: 6px; padding-top: 10px;
   border-top: 1px solid var(--border);
 }
-.xlabels div { flex: 1; text-align: center; min-width: 0; }
-.xlabels div:first-child { text-align: left; }
-.xlabels div:last-child { text-align: right; }
+.xlabels > div {
+  position: absolute; top: 10px; transform: translateX(-50%);
+  text-align: center; white-space: nowrap;
+}
 .xlabels .t { font-size: 12px; font-weight: 600; }
 .xlabels .d { font-size: 11px; color: var(--text-3); }
 

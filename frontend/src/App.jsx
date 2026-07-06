@@ -290,17 +290,21 @@ function Chart({ movers }) {
           </div>
         )}
       </div>
-      <div className="xlabels" style={{ paddingLeft: PADX, paddingRight: PADX }}>
-        {pts.map((p, i) => {
-          const every = Math.ceil(pts.length / 8) // thin labels on long windows
-          const show = i % every === 0 || i === pts.length - 1
-          return (
-            <div key={p.date} style={show ? undefined : { visibility: 'hidden' }}>
+      <div className="xlabels">
+        {pts
+          .filter((p, i) => {
+            // thin labels on long windows; drop a periodic label that would
+            // crowd the always-shown last one
+            const every = Math.ceil(pts.length / 8)
+            const last = pts.length - 1
+            return i === last || (i % every === 0 && last - i >= every / 2)
+          })
+          .map((p) => (
+            <div key={p.date} style={{ left: p.x }}>
               <div className="t">{p.ticker}</div>
               <div className="d">{fmtDate(p.date, { month: 'short', day: 'numeric' })}</div>
             </div>
-          )
-        })}
+          ))}
       </div>
     </section>
   )
