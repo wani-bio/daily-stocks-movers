@@ -244,5 +244,8 @@ td.close { color: var(--text-2); }
   .meter { width: 72px; }
   .xlabels .d { display: none; }
   .xlabels .t { font-size: 10.5px; letter-spacing: -0.01em; }
+  /* phone + 30d: near-vertical so every ticker still fits */
+  .xlabels > div.rot { transform: rotate(68deg); }
+  .xlabels .rot .t { font-size: 9px; }
   .chartcard { padding: 14px 12px 10px; }
 }

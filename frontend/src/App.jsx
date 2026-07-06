@@ -293,18 +293,10 @@ function Chart({ movers }) {
       {(() => {
         const gap = (W - 2 * PADX) / Math.max(pts.length - 1, 1)
         const tight = gap < 48 // long windows: rotate labels instead of dropping them
-        const shown = mobile
-          ? pts.filter((p, i) => {
-              // phones can't fit every label; thin, but keep the last day
-              const every = Math.ceil(pts.length / 8)
-              const last = pts.length - 1
-              return i === last || (i % every === 0 && last - i >= every / 2)
-            })
-          : pts
         return (
-          <div className="xlabels" style={tight && !mobile ? { height: 60 } : undefined}>
-            {shown.map((p) => (
-              <div key={p.date} className={tight && !mobile ? 'rot' : ''} style={{ left: p.x }}>
+          <div className="xlabels" style={tight ? { height: 60 } : undefined}>
+            {pts.map((p) => (
+              <div key={p.date} className={tight ? 'rot' : ''} style={{ left: p.x }}>
                 <div className="t">{p.ticker}</div>
                 {!tight && <div className="d">{fmtDate(p.date, { month: 'short', day: 'numeric' })}</div>}
               </div>
