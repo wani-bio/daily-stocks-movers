@@ -102,12 +102,16 @@ function DayChat({ date, ticker }) {
   if (!open) {
     return (
       <button className="askai" onClick={() => setOpen(true)}>
-        Ask AI about this day
+        {msgs.length ? `Reopen chat (${msgs.length})` : 'Ask AI about this day'}
       </button>
     )
   }
   return (
     <div className="chat">
+      <div className="chead">
+        <span className="nsrc">Chat · {ticker}</span>
+        <button className="askai" onClick={() => setOpen(false)}>Hide chat</button>
+      </div>
       {msgs.map((m, i) => (
         <div key={i} className={`cmsg ${m.role}`}>{m.text}</div>
       ))}

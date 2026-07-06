@@ -99,6 +99,8 @@ h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0
 }
 .askai:hover { color: var(--text); }
 .chat { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.chead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.chead .askai { margin-top: 0; }
 .cmsg {
   max-width: 60ch; font-size: 13.5px; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px;
   white-space: pre-wrap;
