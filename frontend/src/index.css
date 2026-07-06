@@ -185,6 +185,11 @@ h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 36px 0
   position: absolute; top: 10px; transform: translateX(-50%);
   text-align: center; white-space: nowrap;
 }
+.xlabels > div.rot {
+  transform: rotate(52deg); transform-origin: top left;
+  text-align: left;
+}
+.xlabels .rot .t { font-size: 10px; font-weight: 550; }
 .xlabels .t { font-size: 12px; font-weight: 600; }
 .xlabels .d { font-size: 11px; color: var(--text-3); }
 
