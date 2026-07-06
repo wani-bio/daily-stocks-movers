@@ -421,7 +421,7 @@ export default function App() {
 
       <h1>Watchlist daily top mover</h1>
       <p className="lede">
-        The single largest move — up or down — across AAPL, MSFT, GOOGL, AMZN,
+        The single largest move, up or down, across AAPL, MSFT, GOOGL, AMZN,
         TSLA and NVDA, recorded each trading day.
       </p>
 
